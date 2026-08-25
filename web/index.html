@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gefpan — image restoration</title>
+    <meta
+      name="description"
+      content="Gefpan restores worn photographs: fade, dust, scratches, blur, and the quiet losses of time."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Outfit:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css?v=2" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <header class="top">
+      <a class="mark" href="/" aria-label="Gefpan home">
+        <svg class="aperture" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="3" y="3" width="26" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="1.4" />
+          <circle cx="16" cy="16" r="6.4" fill="none" stroke="currentColor" stroke-width="1.4" />
+          <circle cx="16" cy="16" r="1.8" fill="currentColor" />
+        </svg>
+        <span>Gefpan</span>
+      </a>
+      <p class="eyebrow">A restoration studio</p>
+      <p class="privacy">Local chemistry. The file never leaves this machine.</p>
+    </header>
+
+    <main>
+      <section class="stage" id="stage">
+        <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/tiff,image/bmp" hidden />
+
+        <div class="empty" id="empty">
+          <p class="kicker">Plate 01 · waiting</p>
+          <h1>Bring the picture <em>back.</em></h1>
+          <p class="lede">
+            Drop a worn photograph. Gefpan lifts fade, dust, scratches, and blur —
+            the quiet losses of a print that has been handled too long.
+          </p>
+          <div class="empty-actions">
+            <button class="btn primary" id="openBtn" type="button">Open a photograph</button>
+            <span class="or">or choose a worn print below</span>
+          </div>
+        </div>
+
+        <div class="frame hidden" id="frame">
+          <div class="compare" id="compare">
+            <img id="afterImg" alt="Restored photograph" draggable="false" />
+            <div class="before-clip" id="beforeClip">
+              <img id="beforeImg" alt="Original photograph" draggable="false" />
+            </div>
+            <div class="divider" id="divider">
+              <span class="grip" aria-hidden="true"></span>
+            </div>
+            <span class="tag left">Worn</span>
+            <span class="tag right">Restored</span>
+            <a class="save-chip hidden" id="saveChip" href="/api/download" download="gefpan-restored.jpg">Download print</a>
+          </div>
+          <div class="developing" id="developing" hidden>
+            <div class="bath">
+              <span class="bath-label" id="bathLabel">Bathing the plate</span>
+              <span class="bath-bar"><i></i></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tray">
+        <div class="treatments" id="treatments" role="tablist" aria-label="Treatments"></div>
+
+        <div class="console">
+          <label class="strength">
+            <span>Strength <b id="strengthVal">85</b></span>
+            <input id="strength" type="range" min="15" max="100" value="85" />
+          </label>
+          <label class="check">
+            <input id="upscale" type="checkbox" checked />
+            <span>2× resolve</span>
+          </label>
+          <button class="btn primary" id="restoreBtn" type="button" disabled>Restore</button>
+          <a class="btn ghost disabled" id="downloadBtn" href="/api/download" download="gefpan-restored.jpg">Download print</a>
+        </div>
+
+        <p class="meta" id="meta">No plate loaded.</p>
+      </section>
+
+      <section class="contact" aria-label="Worn demonstration prints">
+        <div class="contact-head">
+          <h2>Worn prints</h2>
+          <p>Try a damaged plate from the archive.</p>
+        </div>
+        <div class="strip" id="strip"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Hold <kbd>Space</kbd> to peek at the worn print ·
+        <kbd>Enter</kbd> restores ·
+        <kbd>D</kbd> downloads
+      </p>
+    </footer>
+
+    <script src="/app.js?v=2"></script>
+  </body>
+</html>
