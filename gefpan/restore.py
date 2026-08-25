@@ -615,13 +615,15 @@ def apply_trace(worn: np.ndarray, trace: np.ndarray, strength: float) -> tuple[n
     s = float(np.clip(strength, 0.05, 1.0))
     from .faces import reconstruct_identity
 
-    ident, face_engine = reconstruct_identity(worn, trace, amount=0.78 + 0.18 * s)
+    ident, face_engine = reconstruct_identity(worn, trace, amount=0.80 + 0.16 * s)
     if face_engine:
-        cleaned = repair_damage(ident, 0.45 + 0.2 * s)
-        cleaned = chroma_smooth(cleaned, 0.55)
-        cleaned = neutralize_lab(cleaned, 0.18 + 0.16 * s)
+        cleaned = repair_damage(ident, 0.50 + 0.22 * s)
+        cleaned = chroma_smooth(cleaned, 0.5)
+        cleaned = luma_denoise(cleaned, 0.18)
+        cleaned = neutralize_lab(cleaned, 0.16 + 0.14 * s)
         cleaned = auto_levels(cleaned, 1.0, 99.2, linked=True)
-        out = mix(ident, cleaned, 0.40 + 0.18 * s)
+        # keep the new face; only the sitting takes the extra bath
+        out = mix(ident, cleaned, 0.32 + 0.14 * s)
         out = unsharp(out, 0.12 + 0.10 * s, 0.9)
         return out, face_engine
 
@@ -661,6 +663,9 @@ def restore_image(
             guide = limit_side(read_image(trace), MAX_SIDE)
             out, engine = apply_trace(work, guide, strength)
             used_trace = True
+            if upscale:
+                out, sr_engine = _upscale(out, strength)
+                engine = f"{engine}+{sr_engine}"
         except Exception:
             used_trace = False
 

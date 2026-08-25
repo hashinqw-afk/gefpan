@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gefpan — image restoration</title>
+    <title>Gefpan — restoration studio</title>
     <meta
       name="description"
-      content="Gefpan restores worn photographs: fade, dust, scratches, blur, and the quiet losses of time."
+      content="Gefpan restores worn photographs. Add a present-day picture of the same person and the old plate is rebuilt to resemble them."
     />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -15,7 +15,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Outfit:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=5" />
+    <link rel="stylesheet" href="/styles.css?v=6" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -37,6 +37,7 @@
     <main>
       <section class="stage" id="stage">
         <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/tiff,image/bmp" hidden />
+        <input id="traceFile" type="file" accept="image/jpeg,image/png,image/webp" hidden />
 
         <div class="empty" id="empty">
           <p class="kicker">Plate 01 · waiting</p>
@@ -44,11 +45,12 @@
           <p class="lede">
             Drop a worn photograph. Add a present-day picture of the same person
             as a <em>trace</em> — Gefpan finds both faces, matches the features,
-            and rebuilds the old plate so it resembles them. The rest of the
-            sitting stays put.
+            and rebuilds the old plate so it resembles them. Clothes, body, and
+            room stay the sitting.
           </p>
           <div class="empty-actions">
             <button class="btn primary" id="openBtn" type="button">Open a photograph</button>
+            <button class="btn ghost" id="openTraceEmpty" type="button">Add a present photograph</button>
             <span class="or">or choose a worn print below</span>
           </div>
         </div>
@@ -75,16 +77,25 @@
         </div>
       </section>
 
+      <section class="wells" aria-label="Plates">
+        <button class="well" id="wornWell" type="button">
+          <span class="well-copy">
+            <span class="well-kicker">Worn plate</span>
+            <span class="well-body" id="wornWellBody">Open or drop a photograph</span>
+          </span>
+        </button>
+        <button class="well" id="presentWell" type="button">
+          <img id="traceThumb" class="trace-thumb hidden" alt="Present photograph" />
+          <span class="well-copy">
+            <span class="well-kicker">Present photograph</span>
+            <span class="well-body" id="traceNote">Optional — a picture of the same person now</span>
+          </span>
+        </button>
+        <button class="btn ghost hidden" id="traceClear" type="button">Clear present</button>
+      </section>
+
       <section class="tray">
         <div class="treatments" id="treatments" role="tablist" aria-label="Treatments"></div>
-
-        <div class="trace-row">
-          <input id="traceFile" type="file" accept="image/jpeg,image/png,image/webp" hidden />
-          <button class="btn ghost" id="traceBtn" type="button">Add a present photograph</button>
-          <img id="traceThumb" class="trace-thumb hidden" alt="Present photograph" />
-          <span class="trace-note" id="traceNote">No present photo — repair from the worn print alone.</span>
-          <button class="btn ghost hidden" id="traceClear" type="button">Clear trace</button>
-        </div>
 
         <div class="console">
           <label class="strength">
@@ -105,7 +116,7 @@
       <section class="contact" aria-label="Worn demonstration prints">
         <div class="contact-head">
           <h2>Worn prints</h2>
-          <p>Try a damaged plate from the archive.</p>
+          <p>Window ships with a present-day photograph. The others repair from the plate alone.</p>
         </div>
         <div class="strip" id="strip"></div>
       </section>
@@ -119,6 +130,6 @@
       </p>
     </footer>
 
-    <script src="/app.js?v=4"></script>
+    <script src="/app.js?v=5"></script>
   </body>
 </html>

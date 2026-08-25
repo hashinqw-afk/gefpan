@@ -2,7 +2,7 @@
 
 A local restoration studio for worn photographs.
 
-Gefpan repairs fade, dust, scratches, color cast, blur, and the quiet losses of a print that has been handled too long. Chemistry runs on your machine. The file never leaves it.
+Gefpan repairs fade, dust, scratches, color cast, blur, and the quiet losses of a print that has been handled too long. Add a **present-day photograph** of the same person and it finds both faces, matches the features, and rebuilds the old plate so it resembles them. Clothes, body, and room stay the sitting. Chemistry runs on your machine. The file never leaves it.
 
 ## Treatments
 
@@ -29,32 +29,29 @@ python -m gefpan serve            # http://0.0.0.0:8000
 
 Or `python app.py`.
 
-On first restore with **Resolve** / 2×, Gefpan downloads the small FSRCNN ×2 weights into `models/`.
+On first restore with **Resolve** / 2×, Gefpan downloads the small FSRCNN ×2 weights into `models/`. 2× is never on by default.
 
 ## Command line
 
 ```bash
 python -m gefpan restore worn.jpg -o print.jpg -m vintage -s 0.75
 python -m gefpan restore scan.jpg -o scan-clean.jpg -m document --upscale
+python -m gefpan restore worn.jpg -o print.jpg --trace present.jpg
 ```
 
 ## How it works
 
 No GPU. The pipeline is classical computer vision with one optional tiny CNN:
 
-- Haar face + eye detection, five-point alignment, lighting match, Poisson clone
+- Haar face + eye detection, five-point and hull alignment, lighting match, feathered identity blend
 - damage mask from morphological black-hat / top-hat + Telea inpainting
 - gray-world and LAB cast neutralization
 - chroma-only Gaussian + bilateral / NLM on luma
 - percentile levels, CLAHE, S-curve, vibrance
 - OpenCV `dnn_superres` FSRCNN for 2×
 
-Open a photograph in the studio, optionally add a **present-day photograph** of the same person, restore. Gefpan detects both faces, matches the features, and rebuilds the old plate so the face resembles the new one. Clothes, body, and room stay the worn sitting.
+Open a photograph in the studio, optionally add a present-day photograph of the same person, restore. If no faces are found, the trace is used the older way: color and tear-fill, without replacing the drawing.
 
-If no faces are found, the trace is used the older way: color and tear-fill, without replacing the drawing.
+The **Window** demo ships with a kitchen portrait as its present-day trace.
 
-Hold **Space** to peek at the worn plate. **D** downloads the print.
-
-```bash
-python -m gefpan restore worn.jpg -o print.jpg --trace present.jpg
-```
+Hold **Space** to peek at the worn plate. **Enter** restores. **D** downloads the print.

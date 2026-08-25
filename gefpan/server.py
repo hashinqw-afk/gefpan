@@ -42,7 +42,14 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"ok": True, "name": "gefpan", "modes": list(MODES)}
+    from .faces import available as faces_ok
+
+    return {
+        "ok": True,
+        "name": "gefpan",
+        "modes": list(MODES),
+        "faces": faces_ok(),
+    }
 
 
 @app.get("/api/samples")

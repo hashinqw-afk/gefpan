@@ -17,6 +17,14 @@ const BATH = [
   "Fixing the silver",
 ];
 
+const BATH_PLAIN = [
+  "Bathing the plate",
+  "Lifting the dye",
+  "Filling the tears",
+  "Keeping the drawing",
+  "Fixing the silver",
+];
+
 const state = {
   file: null,
   name: "photograph.jpg",
@@ -35,6 +43,7 @@ const $ = (id) => document.getElementById(id);
 const els = {
   file: $("file"),
   openBtn: $("openBtn"),
+  openTraceEmpty: $("openTraceEmpty"),
   restoreBtn: $("restoreBtn"),
   downloadBtn: $("downloadBtn"),
   saveChip: $("saveChip"),
@@ -55,10 +64,12 @@ const els = {
   developing: $("developing"),
   bathLabel: $("bathLabel"),
   traceFile: $("traceFile"),
-  traceBtn: $("traceBtn"),
   traceClear: $("traceClear"),
   traceNote: $("traceNote"),
   traceThumb: $("traceThumb"),
+  wornWell: $("wornWell"),
+  presentWell: $("presentWell"),
+  wornWellBody: $("wornWellBody"),
 };
 
 function setSplit(t) {
@@ -93,11 +104,12 @@ function setTrace(file, url, label) {
       els.traceThumb.classList.add("hidden");
     }
   }
+  if (els.presentWell) els.presentWell.classList.toggle("has-file", !!file);
   if (els.traceClear) els.traceClear.classList.toggle("hidden", !file);
   if (els.traceNote) {
     els.traceNote.textContent = file
       ? `Tracing the present face from ${label || file.name}`
-      : "No present photo — repair from the worn print alone.";
+      : "Optional — a picture of the same person now";
   }
 }
 
@@ -116,8 +128,10 @@ function setBefore(url, name) {
   els.downloadBtn.classList.add("disabled");
   els.downloadBtn.removeAttribute("href");
   if (els.saveChip) els.saveChip.classList.add("hidden");
+  if (els.wornWell) els.wornWell.classList.add("has-file");
+  if (els.wornWellBody) els.wornWellBody.textContent = state.name;
   els.meta.textContent = state.traceFile
-    ? `${state.name} · trace loaded · waiting`
+    ? `${state.name} · present photograph loaded · waiting`
     : `${state.name} · waiting for the bath`;
 }
 
@@ -147,9 +161,8 @@ function setAfter(blob, headers) {
   const mode = headers.get("X-Gefpan-Mode");
   const traced = headers.get("X-Gefpan-Trace") === "1";
   state.meta = { w, h, ms, engine, mode, traced };
-  els.meta.textContent = traced
-    ? `${w}×${h} · ${engine === "identity" ? "present face" : "traced repair"} · ${engine} · ${ms} ms · ready to download`
-    : `${w}×${h} · ${mode} · ${engine} · ${ms} ms · ready to download`;
+  const kind = engine && engine.startsWith("identity") ? "present face" : traced ? "traced repair" : mode;
+  els.meta.textContent = `${w}×${h} · ${kind} · ${engine} · ${ms} ms · ready to download`;
 }
 
 function renderTreatments() {
@@ -169,13 +182,13 @@ function renderTreatments() {
 }
 
 function takeFile(file) {
-  if (!file || !file.type.startsWith("image/")) return;
+  if (!file || !String(file.type || "").startsWith("image/")) return;
   state.file = file;
   setBefore(URL.createObjectURL(file), file.name);
 }
 
 function takeTrace(file, label) {
-  if (!file || !file.type.startsWith("image/")) return;
+  if (!file || !String(file.type || "").startsWith("image/")) return;
   setTrace(file, URL.createObjectURL(file), label);
 }
 
@@ -184,11 +197,12 @@ async function restore() {
   state.busy = true;
   els.restoreBtn.disabled = true;
   showBath(true);
+  const lines = state.traceFile ? BATH : BATH_PLAIN;
   let i = 0;
-  els.bathLabel.textContent = state.traceFile ? BATH[0] : "Bathing the plate";
+  els.bathLabel.textContent = lines[0];
   const tick = setInterval(() => {
-    i = (i + 1) % BATH.length;
-    els.bathLabel.textContent = BATH[i];
+    i = (i + 1) % lines.length;
+    els.bathLabel.textContent = lines[i];
   }, 900);
 
   const body = new FormData();
@@ -213,6 +227,7 @@ async function restore() {
   } catch (err) {
     const msg = err.name === "AbortError" ? "the bath took too long" : err.message;
     els.meta.textContent = `The bath failed — ${msg}`;
+    showBath(false);
   } finally {
     clearTimeout(watchdog);
     clearInterval(tick);
@@ -254,6 +269,17 @@ function bindCompare() {
   });
 }
 
+function takeDropped(files, asTrace) {
+  const list = Array.from(files || []).filter((f) => String(f.type || "").startsWith("image/"));
+  if (!list.length) return;
+  if (asTrace) {
+    takeTrace(list[0]);
+    return;
+  }
+  takeFile(list[0]);
+  if (list[1]) takeTrace(list[1]);
+}
+
 function bindDrop() {
   const over = (on) => els.stage.classList.toggle("drag", on);
   ["dragenter", "dragover"].forEach((ev) =>
@@ -269,9 +295,25 @@ function bindDrop() {
     })
   );
   els.stage.addEventListener("drop", (e) => {
-    const file = e.dataTransfer.files && e.dataTransfer.files[0];
-    takeFile(file);
+    takeDropped(e.dataTransfer.files, false);
   });
+  if (els.presentWell) {
+    ["dragenter", "dragover"].forEach((ev) =>
+      els.presentWell.addEventListener(ev, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        els.presentWell.classList.add("drag");
+      })
+    );
+    ["dragleave", "drop"].forEach((ev) =>
+      els.presentWell.addEventListener(ev, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        els.presentWell.classList.remove("drag");
+      })
+    );
+    els.presentWell.addEventListener("drop", (e) => takeDropped(e.dataTransfer.files, true));
+  }
 }
 
 async function loadSamples() {
@@ -289,7 +331,11 @@ async function loadSamples() {
     btn.className = "card";
     btn.innerHTML = `
       <img src="${item.file}" alt="${item.title}" />
-      <div class="cap"><b>${item.title}</b><span>${item.year}</span></div>
+      <div class="cap">
+        <b>${item.title}</b>
+        <span>${item.year}${item.present ? " · present photo" : ""}</span>
+      </div>
+      ${item.present ? '<em class="badge">Present</em>' : ""}
     `;
     btn.addEventListener("click", async () => {
       document.querySelectorAll(".card").forEach((c) => c.classList.remove("active"));
@@ -321,13 +367,19 @@ async function loadSamples() {
 }
 
 els.openBtn.addEventListener("click", () => els.file.click());
+if (els.openTraceEmpty) els.openTraceEmpty.addEventListener("click", () => els.traceFile.click());
+if (els.wornWell) els.wornWell.addEventListener("click", () => els.file.click());
+if (els.presentWell) els.presentWell.addEventListener("click", () => els.traceFile.click());
 els.file.addEventListener("change", () => takeFile(els.file.files[0]));
-if (els.traceBtn) els.traceBtn.addEventListener("click", () => els.traceFile.click());
 if (els.traceFile) {
   els.traceFile.addEventListener("change", () => takeTrace(els.traceFile.files[0]));
 }
 if (els.traceClear) {
-  els.traceClear.addEventListener("click", () => setTrace(null, null));
+  els.traceClear.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    setTrace(null, null);
+  });
 }
 els.restoreBtn.addEventListener("click", restore);
 els.downloadBtn.addEventListener("click", download);

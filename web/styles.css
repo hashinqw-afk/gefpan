@@ -398,23 +398,65 @@ h1 em {
   opacity: 0.75;
 }
 
-.trace-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-  padding: 4px 0 2px;
+.wells {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  margin-top: 14px;
+  align-items: stretch;
 }
 
-.trace-note {
+.well {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px dashed var(--line);
+  background: rgba(19, 17, 14, 0.65);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  min-height: 72px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.well-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.well:hover,
+.well.drag {
+  border-color: var(--gold);
+  background: rgba(224, 177, 91, 0.06);
+}
+
+.well.has-file {
+  border-style: solid;
+  border-color: var(--line-2);
+}
+
+.well-kicker {
+  grid-column: 2;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.well-body {
+  grid-column: 2;
   color: var(--muted);
   font-size: 13px;
   font-weight: 300;
 }
 
 .trace-thumb {
-  width: 44px;
-  height: 44px;
+  grid-row: 1 / span 2;
+  width: 48px;
+  height: 48px;
   object-fit: cover;
   border: 1px solid var(--line-2);
 }
@@ -422,6 +464,23 @@ h1 em {
 .trace-thumb.hidden,
 .hidden {
   display: none;
+}
+
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: var(--gold);
+  color: #1a1408;
+  padding: 4px 7px;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 .console {
@@ -614,6 +673,7 @@ kbd {
   main { padding: 8px 14px 32px; }
   .strip { grid-template-columns: repeat(3, 1fr); }
   .chip small { display: none; }
+  .wells { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
