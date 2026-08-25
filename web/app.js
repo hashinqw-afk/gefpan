@@ -10,11 +10,11 @@ const TREATMENTS = [
 ];
 
 const BATH = [
-  "Bathing the plate",
-  "Lifting the fog",
-  "Balancing the dye",
+  "Registering the trace",
+  "Lifting the dye",
+  "Filling the tears",
+  "Keeping the drawing",
   "Fixing the silver",
-  "Raising the grain",
 ];
 
 const state = {
@@ -22,6 +22,8 @@ const state = {
   name: "photograph.jpg",
   beforeUrl: null,
   afterUrl: null,
+  traceFile: null,
+  traceUrl: null,
   mode: "auto",
   split: 0.5,
   busy: false,
@@ -52,6 +54,11 @@ const els = {
   strip: $("strip"),
   developing: $("developing"),
   bathLabel: $("bathLabel"),
+  traceFile: $("traceFile"),
+  traceBtn: $("traceBtn"),
+  traceClear: $("traceClear"),
+  traceNote: $("traceNote"),
+  traceThumb: $("traceThumb"),
 };
 
 function setSplit(t) {
@@ -65,6 +72,27 @@ function showPlate() {
   els.empty.classList.add("hidden");
   els.empty.style.display = "none";
   els.frame.classList.remove("hidden");
+}
+
+function setTrace(file, url, label) {
+  if (state.traceUrl) URL.revokeObjectURL(state.traceUrl);
+  state.traceFile = file || null;
+  state.traceUrl = url || null;
+  if (els.traceThumb) {
+    if (url) {
+      els.traceThumb.src = url;
+      els.traceThumb.classList.remove("hidden");
+    } else {
+      els.traceThumb.removeAttribute("src");
+      els.traceThumb.classList.add("hidden");
+    }
+  }
+  if (els.traceClear) els.traceClear.classList.toggle("hidden", !file);
+  if (els.traceNote) {
+    els.traceNote.textContent = file
+      ? `Tracing from ${label || file.name}`
+      : "No guide — repair from the worn print alone.";
+  }
 }
 
 function setBefore(url, name) {
@@ -82,7 +110,14 @@ function setBefore(url, name) {
   els.downloadBtn.classList.add("disabled");
   els.downloadBtn.removeAttribute("href");
   if (els.saveChip) els.saveChip.classList.add("hidden");
-  els.meta.textContent = `${state.name} · waiting for the bath`;
+  els.meta.textContent = state.traceFile
+    ? `${state.name} · trace loaded · waiting`
+    : `${state.name} · waiting for the bath`;
+}
+
+function downloadName() {
+  const base = (state.name || "photograph").replace(/\.[^.]+$/, "");
+  return `${base}-restored.jpg`;
 }
 
 function setAfter(blob, headers) {
@@ -104,8 +139,11 @@ function setAfter(blob, headers) {
   const ms = headers.get("X-Gefpan-Ms");
   const engine = headers.get("X-Gefpan-Engine");
   const mode = headers.get("X-Gefpan-Mode");
-  state.meta = { w, h, ms, engine, mode };
-  els.meta.textContent = `${w}×${h} · ${mode} · ${engine} · ${ms} ms · ready to download`;
+  const traced = headers.get("X-Gefpan-Trace") === "1";
+  state.meta = { w, h, ms, engine, mode, traced };
+  els.meta.textContent = traced
+    ? `${w}×${h} · traced repair · ${engine} · ${ms} ms · ready to download`
+    : `${w}×${h} · ${mode} · ${engine} · ${ms} ms · ready to download`;
 }
 
 function renderTreatments() {
@@ -130,13 +168,18 @@ function takeFile(file) {
   setBefore(URL.createObjectURL(file), file.name);
 }
 
+function takeTrace(file, label) {
+  if (!file || !file.type.startsWith("image/")) return;
+  setTrace(file, URL.createObjectURL(file), label);
+}
+
 async function restore() {
   if (!state.file || state.busy) return;
   state.busy = true;
   els.restoreBtn.disabled = true;
   els.developing.hidden = false;
   let i = 0;
-  els.bathLabel.textContent = BATH[0];
+  els.bathLabel.textContent = state.traceFile ? BATH[0] : "Bathing the plate";
   const tick = setInterval(() => {
     i = (i + 1) % BATH.length;
     els.bathLabel.textContent = BATH[i];
@@ -147,6 +190,9 @@ async function restore() {
   body.append("mode", state.mode);
   body.append("strength", String(Number(els.strength.value) / 100));
   body.append("upscale", els.upscale.checked ? "true" : "false");
+  if (state.traceFile) {
+    body.append("trace", state.traceFile, state.traceFile.name || "trace.jpg");
+  }
 
   try {
     const res = await fetch("/api/restore", { method: "POST", body });
@@ -166,13 +212,16 @@ async function restore() {
   }
 }
 
-function download() {
+function download(ev) {
+  if (ev) ev.preventDefault();
   if (!state.afterUrl) return;
   const a = document.createElement("a");
-  const base = state.name.replace(/\.[^.]+$/, "");
   a.href = state.afterUrl;
-  a.download = `${base}-gefpan.jpg`;
+  a.download = downloadName();
+  a.rel = "noopener";
+  document.body.appendChild(a);
   a.click();
+  a.remove();
 }
 
 function bindCompare() {
@@ -235,13 +284,24 @@ async function loadSamples() {
     btn.addEventListener("click", async () => {
       document.querySelectorAll(".card").forEach((c) => c.classList.remove("active"));
       btn.classList.add("active");
-      const res = await fetch(item.file);
-      const blob = await res.blob();
-      const file = new File([blob], `${item.id}.jpg`, { type: "image/jpeg" });
+      const wornRes = await fetch(item.file);
+      const wornBlob = await wornRes.blob();
+      const worn = new File([wornBlob], `${item.id}.jpg`, { type: "image/jpeg" });
       state.mode = item.mode || "auto";
       renderTreatments();
-      takeFile(file);
-      els.meta.textContent = `${item.title} · ${item.note}`;
+      takeFile(worn);
+      if (item.trace) {
+        try {
+          const tr = await fetch(item.trace);
+          const tb = await tr.blob();
+          takeTrace(new File([tb], `${item.id}-trace.jpg`, { type: "image/jpeg" }), `${item.title} guide`);
+        } catch {
+          setTrace(null, null);
+        }
+      } else {
+        setTrace(null, null);
+      }
+      els.meta.textContent = `${item.title} · tracing from the clean plate`;
     });
     els.strip.appendChild(btn);
   }
@@ -249,6 +309,13 @@ async function loadSamples() {
 
 els.openBtn.addEventListener("click", () => els.file.click());
 els.file.addEventListener("change", () => takeFile(els.file.files[0]));
+if (els.traceBtn) els.traceBtn.addEventListener("click", () => els.traceFile.click());
+if (els.traceFile) {
+  els.traceFile.addEventListener("change", () => takeTrace(els.traceFile.files[0]));
+}
+if (els.traceClear) {
+  els.traceClear.addEventListener("click", () => setTrace(null, null));
+}
 els.restoreBtn.addEventListener("click", restore);
 els.downloadBtn.addEventListener("click", download);
 if (els.saveChip) els.saveChip.addEventListener("click", download);

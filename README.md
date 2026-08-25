@@ -48,4 +48,10 @@ No GPU. The pipeline is classical computer vision with one optional tiny CNN:
 - percentile levels, CLAHE, S-curve, vibrance
 - OpenCV `dnn_superres` FSRCNN for 2×
 
-Open a photograph in the studio, pick a treatment, drag strength, restore. Hold **Space** to peek at the worn plate. **D** downloads the print.
+Open a photograph in the studio, optionally add a **trace plate** (a cleaner print of the same sitting), restore. The trace lends color and fills tears; the worn plate keeps its drawing so the result stays a photograph, not a new picture.
+
+Hold **Space** to peek at the worn plate. **D** downloads the print.
+
+```bash
+python -m gefpan restore worn.jpg -o print.jpg --trace clean.jpg
+```

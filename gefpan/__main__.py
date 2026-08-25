@@ -57,6 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         mode=args.mode,
         strength=args.strength,
         upscale=args.upscale,
+        trace=args.trace,
     )
     print(
         f"wrote {args.output}  {info['width']}×{info['height']}  "

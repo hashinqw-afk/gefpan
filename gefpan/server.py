@@ -34,6 +34,7 @@ app.add_middleware(
         "X-Gefpan-Ms",
         "X-Gefpan-Engine",
         "X-Gefpan-Filename",
+        "X-Gefpan-Trace",
         "Content-Disposition",
     ],
 )
@@ -47,7 +48,10 @@ def health() -> dict:
 @app.get("/api/samples")
 def samples() -> list:
     if MANIFEST.exists():
-        return json.loads(MANIFEST.read_text(encoding="utf-8"))
+        items = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        for item in items:
+            item["trace"] = f"/traces/{item['id']}.jpg"
+        return items
     return []
 
 
@@ -57,6 +61,7 @@ async def restore(
     mode: str = Form("auto"),
     strength: float = Form(0.72),
     upscale: str = Form("false"),
+    trace: UploadFile | None = File(None),
 ) -> Response:
     data = await file.read()
     if not data:
@@ -64,8 +69,21 @@ async def restore(
     if len(data) > MAX_UPLOAD:
         raise HTTPException(413, "file too large (14 MB max)")
     want_upscale = str(upscale).strip().lower() in {"1", "true", "yes", "on"}
+    guide = None
+    if trace is not None:
+        guide = await trace.read()
+        if guide and len(guide) > MAX_UPLOAD:
+            raise HTTPException(413, "trace file too large (14 MB max)")
+        if not guide:
+            guide = None
     try:
-        result = restore_image(data, mode=mode, strength=float(strength), upscale=want_upscale)
+        result = restore_image(
+            data,
+            mode=mode,
+            strength=float(strength),
+            upscale=want_upscale,
+            trace=guide,
+        )
     except Exception as exc:
         raise HTTPException(400, f"could not restore: {exc}") from exc
 
@@ -85,6 +103,7 @@ async def restore(
             "X-Gefpan-Ms": str(result["ms"]),
             "X-Gefpan-Engine": result["engine"],
             "X-Gefpan-Filename": filename,
+            "X-Gefpan-Trace": "1" if result.get("trace") else "0",
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Cache-Control": "no-store",
         },
@@ -118,6 +137,9 @@ _ready_samples()
 
 if WEB.exists():
     SAMPLES.mkdir(parents=True, exist_ok=True)
+    traces = ROOT / "samples" / "source"
+    if traces.exists():
+        app.mount("/traces", StaticFiles(directory=str(traces)), name="traces")
     app.mount("/samples", StaticFiles(directory=str(SAMPLES)), name="samples")
     app.mount("/", StaticFiles(directory=str(WEB), html=True), name="web")
 

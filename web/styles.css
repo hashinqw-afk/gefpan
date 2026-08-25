@@ -390,6 +390,32 @@ h1 em {
   opacity: 0.75;
 }
 
+.trace-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 4px 0 2px;
+}
+
+.trace-note {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 300;
+}
+
+.trace-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border: 1px solid var(--line-2);
+}
+
+.trace-thumb.hidden,
+.hidden {
+  display: none;
+}
+
 .console {
   display: flex;
   flex-wrap: wrap;

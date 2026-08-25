@@ -566,11 +566,94 @@ _PIPELINES = {
 }
 
 
+def align_trace(worn: np.ndarray, trace: np.ndarray) -> tuple[np.ndarray, str]:
+    """Resize the guide and, if it is the same sitting, lock it to the worn plate."""
+    h, w = worn.shape[:2]
+    ref = cv2.resize(trace, (w, h), interpolation=cv2.INTER_AREA)
+    g0 = cv2.cvtColor(worn, cv2.COLOR_BGR2GRAY)
+    g1 = cv2.cvtColor(ref, cv2.COLOR_BGR2GRAY)
+    try:
+        warp = np.eye(2, 3, dtype=np.float32)
+        criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 90, 1e-5)
+        cv2.findTransformECC(
+            g0.astype(np.float32) / 255.0,
+            g1.astype(np.float32) / 255.0,
+            warp,
+            cv2.MOTION_AFFINE,
+            criteria,
+            None,
+            4,
+        )
+        aligned = cv2.warpAffine(
+            ref,
+            warp,
+            (w, h),
+            flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP,
+            borderMode=cv2.BORDER_REPLICATE,
+        )
+        return aligned, "trace"
+    except cv2.error:
+        return ref, "trace-fit"
+
+
+def reinhard_color(src: np.ndarray, ref: np.ndarray, amount: float = 0.75) -> np.ndarray:
+    """Borrow the guide's dye — not its pixels — so the worn plate keeps its drawing."""
+    s = cv2.cvtColor(src, cv2.COLOR_BGR2LAB).astype(np.float32)
+    r = cv2.cvtColor(ref, cv2.COLOR_BGR2LAB).astype(np.float32)
+    out = s.copy()
+    for i in range(3):
+        sm, ss = float(s[:, :, i].mean()), float(s[:, :, i].std()) + 1e-5
+        rm, rs = float(r[:, :, i].mean()), float(r[:, :, i].std()) + 1e-5
+        mapped = (s[:, :, i] - sm) * (rs / ss) + rm
+        out[:, :, i] = s[:, :, i] * (1.0 - amount) + mapped * amount
+    return cv2.cvtColor(_u8(out), cv2.COLOR_LAB2BGR)
+
+
+def fill_from_trace(worn: np.ndarray, aligned: np.ndarray, amount: float = 0.85) -> np.ndarray:
+    """Where the emulsion is torn, take silver from the aligned guide."""
+    mask = detect_damage(worn)
+    if mask.mean() < 0.15:
+        return worn
+    m = mask.astype(np.float32) / 255.0
+    m = cv2.GaussianBlur(m, (0, 0), 1.2)
+    m = np.clip(m * amount, 0.0, 1.0)[:, :, None]
+    return _u8(_f32(worn) * (1.0 - m) + _f32(aligned) * m)
+
+
+def transfer_micro_detail(base: np.ndarray, ref: np.ndarray, amount: float = 0.28) -> np.ndarray:
+    """A little of the guide's grain and pore — never a paste of the whole picture."""
+    sigma = 1.8
+    base_f = _f32(base)
+    ref_f = _f32(ref)
+    base_low = cv2.GaussianBlur(base, (0, 0), sigma).astype(np.float32)
+    ref_low = cv2.GaussianBlur(ref, (0, 0), sigma).astype(np.float32)
+    # keep the worn plate's drawing; mix only the high-frequency layer
+    return _u8(base_low + (base_f - base_low) * (1.0 - amount) + (ref_f - ref_low) * amount)
+
+
+def apply_trace(worn: np.ndarray, trace: np.ndarray, strength: float) -> tuple[np.ndarray, str]:
+    """Repair by tracing a cleaner plate. The worn photograph stays the photograph."""
+    s = float(np.clip(strength, 0.05, 1.0))
+    aligned, engine = align_trace(worn, trace)
+    base = repair_damage(worn, 0.55 + 0.3 * s)
+    base = chroma_smooth(base, 0.7)
+    base = luma_denoise(base, 0.22)
+    filled = fill_from_trace(base, aligned, 0.7 + 0.25 * s)
+    colored = reinhard_color(filled, aligned, 0.5 + 0.35 * s)
+    detailed = transfer_micro_detail(colored, aligned, 0.16 + 0.22 * s)
+    # identity lock — most of the original drawing remains
+    out = mix(worn, detailed, 0.58 + 0.28 * s)
+    out = fill_from_trace(out, aligned, 0.88)
+    out = unsharp(out, 0.18 + 0.16 * s, 0.9)
+    return out, engine
+
+
 def restore_image(
     data: bytes,
     mode: str = "auto",
     strength: float = 0.72,
     upscale: bool = False,
+    trace: bytes | None = None,
 ) -> dict[str, Any]:
     t0 = time.perf_counter()
     mode = (mode or "auto").lower().strip()
@@ -581,20 +664,27 @@ def restore_image(
     src = read_image(data)
     work = limit_side(src, MAX_SIDE)
     engine = "opencv"
+    used_trace = False
 
-    if mode == "upscale":
-        out, engine = _upscale(work, strength)
-    else:
-        proc = _PIPELINES.get(mode, _auto)(work, strength)
-        out = mix(work, proc, 0.84 + 0.16 * strength)
-        if mode in ("auto", "vintage", "portrait", "document", "color"):
-            out = repair_damage(out, min(1.0, strength + 0.15))
-        want_up = upscale or (
-            mode in ("auto", "vintage", "portrait", "sharpen") and max(out.shape[:2]) <= 1400
-        )
-        if want_up:
-            out, engine = _upscale(out, strength)
-            out = multi_sharpen(out, 0.28 + 0.25 * strength)
+    if trace:
+        try:
+            guide = limit_side(read_image(trace), MAX_SIDE)
+            out, engine = apply_trace(work, guide, strength)
+            used_trace = True
+        except Exception:
+            used_trace = False
+
+    if not used_trace:
+        if mode == "upscale":
+            out, engine = _upscale(work, strength)
+        else:
+            proc = _PIPELINES.get(mode, _auto)(work, strength)
+            # keep the photograph — do not replace it with a crunchy reconstruction
+            out = mix(work, proc, 0.55 + 0.28 * strength)
+            if mode in ("auto", "vintage", "portrait", "document", "color"):
+                out = repair_damage(out, min(1.0, strength + 0.15))
+            if upscale:
+                out, engine = _upscale(out, strength)
 
     ms = int((time.perf_counter() - t0) * 1000)
     h, w = out.shape[:2]
@@ -607,6 +697,7 @@ def restore_image(
         "strength": strength,
         "engine": engine,
         "ms": ms,
+        "trace": used_trace,
     }
 
 
@@ -616,8 +707,16 @@ def restore_file(
     mode: str = "auto",
     strength: float = 0.72,
     upscale: bool = False,
+    trace: Path | None = None,
 ) -> dict[str, Any]:
-    result = restore_image(Path(src).read_bytes(), mode=mode, strength=strength, upscale=upscale)
+    guide = Path(trace).read_bytes() if trace else None
+    result = restore_image(
+        Path(src).read_bytes(),
+        mode=mode,
+        strength=strength,
+        upscale=upscale,
+        trace=guide,
+    )
     dest = Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(result["jpeg"])

@@ -15,7 +15,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Outfit:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=2" />
+    <link rel="stylesheet" href="/styles.css?v=3" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -42,8 +42,9 @@
           <p class="kicker">Plate 01 · waiting</p>
           <h1>Bring the picture <em>back.</em></h1>
           <p class="lede">
-            Drop a worn photograph. Gefpan lifts fade, dust, scratches, and blur —
-            the quiet losses of a print that has been handled too long.
+            Drop a worn photograph. Add a cleaner print of the same sitting as a
+            <em>trace plate</em> — Gefpan borrows its color and fills the tears,
+            and leaves the original drawing alone.
           </p>
           <div class="empty-actions">
             <button class="btn primary" id="openBtn" type="button">Open a photograph</button>
@@ -76,13 +77,21 @@
       <section class="tray">
         <div class="treatments" id="treatments" role="tablist" aria-label="Treatments"></div>
 
+        <div class="trace-row">
+          <input id="traceFile" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+          <button class="btn ghost" id="traceBtn" type="button">Add a trace plate</button>
+          <img id="traceThumb" class="trace-thumb hidden" alt="Trace plate" />
+          <span class="trace-note" id="traceNote">No guide — repair from the worn print alone.</span>
+          <button class="btn ghost hidden" id="traceClear" type="button">Clear trace</button>
+        </div>
+
         <div class="console">
           <label class="strength">
-            <span>Strength <b id="strengthVal">85</b></span>
-            <input id="strength" type="range" min="15" max="100" value="85" />
+            <span>Strength <b id="strengthVal">70</b></span>
+            <input id="strength" type="range" min="15" max="100" value="70" />
           </label>
           <label class="check">
-            <input id="upscale" type="checkbox" checked />
+            <input id="upscale" type="checkbox" />
             <span>2× resolve</span>
           </label>
           <button class="btn primary" id="restoreBtn" type="button" disabled>Restore</button>
@@ -109,6 +118,6 @@
       </p>
     </footer>
 
-    <script src="/app.js?v=2"></script>
+    <script src="/app.js?v=3"></script>
   </body>
 </html>
