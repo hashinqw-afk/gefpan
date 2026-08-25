@@ -1,0 +1,16 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+# worn demo prints are generated, but keep them in-tree for a working studio
+models/*
+!models/FSRCNN_x2.pb
+!models/.gitkeep
+*.log
+.idea/
+.vscode/

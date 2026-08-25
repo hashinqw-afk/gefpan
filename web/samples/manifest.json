@@ -1,0 +1,50 @@
+[
+  {
+    "id": "portrait",
+    "title": "Window",
+    "year": "c. 1974",
+    "mode": "portrait",
+    "note": "Yellowed print, hairline scratches, a little fog on the silver.",
+    "file": "/samples/portrait.jpg"
+  },
+  {
+    "id": "lake",
+    "title": "Alpine",
+    "year": "c. 1968",
+    "mode": "vintage",
+    "note": "Bleached color, lake haze, dust in the emulsion.",
+    "file": "/samples/lake.jpg"
+  },
+  {
+    "id": "street",
+    "title": "Alley",
+    "year": "c. 1981",
+    "mode": "denoise",
+    "note": "Pushed film \u2014 heavy grain, soft focus, a thin underexposure.",
+    "file": "/samples/street.jpg"
+  },
+  {
+    "id": "boy",
+    "title": "Keepsake",
+    "year": "c. 1976",
+    "mode": "vintage",
+    "note": "A handled print: crease, tea stain, the reds gone brick.",
+    "file": "/samples/boy.jpg"
+  },
+  {
+    "id": "library",
+    "title": "Stacks",
+    "year": "c. 1959",
+    "mode": "color",
+    "note": "Underexposed plate, low contrast, a brown fog in the shadows.",
+    "file": "/samples/library.jpg"
+  },
+  {
+    "id": "letter",
+    "title": "Letter",
+    "year": "18 Oct 1931",
+    "mode": "document",
+    "note": "Uneven desk light, foxing on the paper, the ink a little soft.",
+    "file": "/samples/letter.jpg"
+  }
+]
