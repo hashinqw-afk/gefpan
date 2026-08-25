@@ -373,11 +373,13 @@ def _load_face_cascade():
     global _face
     if _face is not None:
         return _face or None
-    candidates = []
+    candidates = [
+        Path(__file__).resolve().parent / "cascades" / "haarcascade_frontalface_alt2.xml",
+        MODELS / "haarcascade_frontalface_default.xml",
+    ]
     data = getattr(cv2, "data", None)
     if data is not None:
         candidates.append(Path(data.haarcascades) / "haarcascade_frontalface_default.xml")
-    candidates.append(MODELS / "haarcascade_frontalface_default.xml")
     for path in candidates:
         if path.exists():
             cascade = cv2.CascadeClassifier(str(path))
@@ -609,16 +611,27 @@ def transfer_micro_detail(base: np.ndarray, ref: np.ndarray, amount: float = 0.2
 
 
 def apply_trace(worn: np.ndarray, trace: np.ndarray, strength: float) -> tuple[np.ndarray, str]:
-    """Repair by tracing a cleaner plate. The worn photograph stays the photograph."""
+    """Rebuild the worn plate. A present-day face is matched in; the sitting stays put."""
     s = float(np.clip(strength, 0.05, 1.0))
-    aligned, engine = align_trace(worn, trace)
+    from .faces import reconstruct_identity
+
+    ident, face_engine = reconstruct_identity(worn, trace, amount=0.78 + 0.18 * s)
+    if face_engine:
+        cleaned = repair_damage(ident, 0.45 + 0.2 * s)
+        cleaned = chroma_smooth(cleaned, 0.55)
+        cleaned = neutralize_lab(cleaned, 0.18 + 0.16 * s)
+        cleaned = auto_levels(cleaned, 1.0, 99.2, linked=True)
+        out = mix(ident, cleaned, 0.40 + 0.18 * s)
+        out = unsharp(out, 0.12 + 0.10 * s, 0.9)
+        return out, face_engine
+
     base = repair_damage(worn, 0.55 + 0.3 * s)
     base = chroma_smooth(base, 0.7)
     base = luma_denoise(base, 0.22)
+    aligned, engine = align_trace(worn, trace)
     filled = fill_from_trace(base, aligned, 0.7 + 0.25 * s)
     colored = reinhard_color(filled, aligned, 0.5 + 0.35 * s)
     detailed = transfer_micro_detail(colored, aligned, 0.16 + 0.22 * s)
-    # identity lock — most of the original drawing remains
     out = mix(worn, detailed, 0.58 + 0.28 * s)
     out = fill_from_trace(out, aligned, 0.88)
     out = unsharp(out, 0.18 + 0.16 * s, 0.9)

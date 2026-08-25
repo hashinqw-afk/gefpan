@@ -29,6 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     restore.add_argument("-s", "--strength", type=float, default=0.72)
     restore.add_argument("--upscale", action="store_true")
+    restore.add_argument("--trace", type=Path, default=None, help="present-day photograph of the same person")
 
     samples = sub.add_parser("samples", help="build worn demo prints from source photos")
 

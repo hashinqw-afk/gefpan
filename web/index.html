@@ -15,7 +15,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Outfit:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=4" />
+    <link rel="stylesheet" href="/styles.css?v=5" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -42,9 +42,10 @@
           <p class="kicker">Plate 01 · waiting</p>
           <h1>Bring the picture <em>back.</em></h1>
           <p class="lede">
-            Drop a worn photograph. Add a cleaner print of the same sitting as a
-            <em>trace plate</em> — Gefpan borrows its color and fills the tears,
-            and leaves the original drawing alone.
+            Drop a worn photograph. Add a present-day picture of the same person
+            as a <em>trace</em> — Gefpan finds both faces, matches the features,
+            and rebuilds the old plate so it resembles them. The rest of the
+            sitting stays put.
           </p>
           <div class="empty-actions">
             <button class="btn primary" id="openBtn" type="button">Open a photograph</button>
@@ -79,9 +80,9 @@
 
         <div class="trace-row">
           <input id="traceFile" type="file" accept="image/jpeg,image/png,image/webp" hidden />
-          <button class="btn ghost" id="traceBtn" type="button">Add a trace plate</button>
-          <img id="traceThumb" class="trace-thumb hidden" alt="Trace plate" />
-          <span class="trace-note" id="traceNote">No guide — repair from the worn print alone.</span>
+          <button class="btn ghost" id="traceBtn" type="button">Add a present photograph</button>
+          <img id="traceThumb" class="trace-thumb hidden" alt="Present photograph" />
+          <span class="trace-note" id="traceNote">No present photo — repair from the worn print alone.</span>
           <button class="btn ghost hidden" id="traceClear" type="button">Clear trace</button>
         </div>
 
@@ -118,6 +119,6 @@
       </p>
     </footer>
 
-    <script src="/app.js?v=3"></script>
+    <script src="/app.js?v=4"></script>
   </body>
 </html>

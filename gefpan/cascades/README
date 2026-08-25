@@ -1,0 +1,3 @@
+Haar cascades from OpenCV (`opencv/opencv` `data/haarcascades`).
+Intel / OpenCV license. Used for face and eye detection when a present-day
+photograph is traced onto a worn plate.

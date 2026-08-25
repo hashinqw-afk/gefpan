@@ -49,8 +49,12 @@ def health() -> dict:
 def samples() -> list:
     if MANIFEST.exists():
         items = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        traces = ROOT / "samples" / "source"
         for item in items:
-            item["trace"] = f"/traces/{item['id']}.jpg"
+            present = traces / f"{item['id']}-present.jpg"
+            name = present.name if present.exists() else f"{item['id']}.jpg"
+            item["trace"] = f"/traces/{name}"
+            item["present"] = present.exists()
         return items
     return []
 

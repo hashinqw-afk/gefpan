@@ -42,16 +42,19 @@ python -m gefpan restore scan.jpg -o scan-clean.jpg -m document --upscale
 
 No GPU. The pipeline is classical computer vision with one optional tiny CNN:
 
+- Haar face + eye detection, five-point alignment, lighting match, Poisson clone
 - damage mask from morphological black-hat / top-hat + Telea inpainting
 - gray-world and LAB cast neutralization
 - chroma-only Gaussian + bilateral / NLM on luma
 - percentile levels, CLAHE, S-curve, vibrance
 - OpenCV `dnn_superres` FSRCNN for 2×
 
-Open a photograph in the studio, optionally add a **trace plate** (a cleaner print of the same sitting), restore. The trace lends color and fills tears; the worn plate keeps its drawing so the result stays a photograph, not a new picture.
+Open a photograph in the studio, optionally add a **present-day photograph** of the same person, restore. Gefpan detects both faces, matches the features, and rebuilds the old plate so the face resembles the new one. Clothes, body, and room stay the worn sitting.
+
+If no faces are found, the trace is used the older way: color and tear-fill, without replacing the drawing.
 
 Hold **Space** to peek at the worn plate. **D** downloads the print.
 
 ```bash
-python -m gefpan restore worn.jpg -o print.jpg --trace clean.jpg
+python -m gefpan restore worn.jpg -o print.jpg --trace present.jpg
 ```

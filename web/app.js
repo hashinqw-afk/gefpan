@@ -10,10 +10,10 @@ const TREATMENTS = [
 ];
 
 const BATH = [
-  "Registering the trace",
-  "Lifting the dye",
-  "Filling the tears",
-  "Keeping the drawing",
+  "Finding the faces",
+  "Matching the features",
+  "Rebuilding the plate",
+  "Keeping the sitting",
   "Fixing the silver",
 ];
 
@@ -96,8 +96,8 @@ function setTrace(file, url, label) {
   if (els.traceClear) els.traceClear.classList.toggle("hidden", !file);
   if (els.traceNote) {
     els.traceNote.textContent = file
-      ? `Tracing from ${label || file.name}`
-      : "No guide — repair from the worn print alone.";
+      ? `Tracing the present face from ${label || file.name}`
+      : "No present photo — repair from the worn print alone.";
   }
 }
 
@@ -148,7 +148,7 @@ function setAfter(blob, headers) {
   const traced = headers.get("X-Gefpan-Trace") === "1";
   state.meta = { w, h, ms, engine, mode, traced };
   els.meta.textContent = traced
-    ? `${w}×${h} · traced repair · ${engine} · ${ms} ms · ready to download`
+    ? `${w}×${h} · ${engine === "identity" ? "present face" : "traced repair"} · ${engine} · ${ms} ms · ready to download`
     : `${w}×${h} · ${mode} · ${engine} · ${ms} ms · ready to download`;
 }
 
@@ -304,14 +304,17 @@ async function loadSamples() {
         try {
           const tr = await fetch(item.trace);
           const tb = await tr.blob();
-          takeTrace(new File([tb], `${item.id}-trace.jpg`, { type: "image/jpeg" }), `${item.title} guide`);
+          const label = item.present ? "a present-day photograph" : `${item.title} guide`;
+          takeTrace(new File([tb], `${item.id}-trace.jpg`, { type: "image/jpeg" }), label);
         } catch {
           setTrace(null, null);
         }
       } else {
         setTrace(null, null);
       }
-      els.meta.textContent = `${item.title} · tracing from the clean plate`;
+      els.meta.textContent = item.present
+        ? `${item.title} · tracing from a present-day photograph`
+        : `${item.title} · waiting for the bath`;
     });
     els.strip.appendChild(btn);
   }
