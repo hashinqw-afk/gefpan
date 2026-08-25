@@ -77,12 +77,15 @@ async def restore(
         if not guide:
             guide = None
     try:
-        result = restore_image(
+        import asyncio
+
+        result = await asyncio.to_thread(
+            restore_image,
             data,
-            mode=mode,
-            strength=float(strength),
-            upscale=want_upscale,
-            trace=guide,
+            mode,
+            float(strength),
+            want_upscale,
+            guide,
         )
     except Exception as exc:
         raise HTTPException(400, f"could not restore: {exc}") from exc
@@ -104,7 +107,6 @@ async def restore(
             "X-Gefpan-Engine": result["engine"],
             "X-Gefpan-Filename": filename,
             "X-Gefpan-Trace": "1" if result.get("trace") else "0",
-            "Content-Disposition": f'attachment; filename="{filename}"',
             "Cache-Control": "no-store",
         },
     )

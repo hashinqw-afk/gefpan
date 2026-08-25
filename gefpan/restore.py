@@ -570,30 +570,7 @@ def align_trace(worn: np.ndarray, trace: np.ndarray) -> tuple[np.ndarray, str]:
     """Resize the guide and, if it is the same sitting, lock it to the worn plate."""
     h, w = worn.shape[:2]
     ref = cv2.resize(trace, (w, h), interpolation=cv2.INTER_AREA)
-    g0 = cv2.cvtColor(worn, cv2.COLOR_BGR2GRAY)
-    g1 = cv2.cvtColor(ref, cv2.COLOR_BGR2GRAY)
-    try:
-        warp = np.eye(2, 3, dtype=np.float32)
-        criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 90, 1e-5)
-        cv2.findTransformECC(
-            g0.astype(np.float32) / 255.0,
-            g1.astype(np.float32) / 255.0,
-            warp,
-            cv2.MOTION_AFFINE,
-            criteria,
-            None,
-            4,
-        )
-        aligned = cv2.warpAffine(
-            ref,
-            warp,
-            (w, h),
-            flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP,
-            borderMode=cv2.BORDER_REPLICATE,
-        )
-        return aligned, "trace"
-    except cv2.error:
-        return ref, "trace-fit"
+    return ref, "trace"
 
 
 def reinhard_color(src: np.ndarray, ref: np.ndarray, amount: float = 0.75) -> np.ndarray:

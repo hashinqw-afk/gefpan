@@ -74,6 +74,12 @@ function showPlate() {
   els.frame.classList.remove("hidden");
 }
 
+function showBath(on) {
+  if (!els.developing) return;
+  els.developing.hidden = !on;
+  els.developing.classList.toggle("is-on", on);
+}
+
 function setTrace(file, url, label) {
   if (state.traceUrl) URL.revokeObjectURL(state.traceUrl);
   state.traceFile = file || null;
@@ -177,7 +183,7 @@ async function restore() {
   if (!state.file || state.busy) return;
   state.busy = true;
   els.restoreBtn.disabled = true;
-  els.developing.hidden = false;
+  showBath(true);
   let i = 0;
   els.bathLabel.textContent = state.traceFile ? BATH[0] : "Bathing the plate";
   const tick = setInterval(() => {
@@ -194,8 +200,10 @@ async function restore() {
     body.append("trace", state.traceFile, state.traceFile.name || "trace.jpg");
   }
 
+  const ac = new AbortController();
+  const watchdog = setTimeout(() => ac.abort(), 90000);
   try {
-    const res = await fetch("/api/restore", { method: "POST", body });
+    const res = await fetch("/api/restore", { method: "POST", body, signal: ac.signal });
     if (!res.ok) {
       const text = await res.text();
       throw new Error(text || res.statusText);
@@ -203,10 +211,12 @@ async function restore() {
     const blob = await res.blob();
     setAfter(blob, res.headers);
   } catch (err) {
-    els.meta.textContent = `The bath failed — ${err.message}`;
+    const msg = err.name === "AbortError" ? "the bath took too long" : err.message;
+    els.meta.textContent = `The bath failed — ${msg}`;
   } finally {
+    clearTimeout(watchdog);
     clearInterval(tick);
-    els.developing.hidden = true;
+    showBath(false);
     state.busy = false;
     els.restoreBtn.disabled = !state.file;
   }
